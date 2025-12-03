@@ -9,6 +9,16 @@ import threading
 import re   # ★ 禁止文字除去に必要
 from settings_page import SettingsPage
 
+import sys, os
+
+
+def resource_path(relative_path):
+    """PyInstaller で exe 化した後でもリソースファイルにアクセスできるようにする"""
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+
 # -----------------------------
 # 設定
 # -----------------------------
@@ -25,14 +35,21 @@ BG_ENTRY = "#32302F"
 FG_MAIN = "#e5e7eb"
 SEARCH_BG = "#3d3b3a"
 
+# 進捗ゲージ用カラー（黒ベースのグレー系）
+GAUGE_TRACK_COLOR = "#3a3a3a"   # ゲージ背景（トラック / 灰色）
+GAUGE_BAR_COLOR   = "#ffffff"   # ゲージ本体（バー / 白）
+
 
 # =========================================================
-# ★★ ファイル名を完全安全化する関数（追加）★★
+# ★★ ファイル名を完全安全化する関数
 # =========================================================
 def safe_filename(name: str) -> str:
-    name = re.sub(r'[\\/*?:"<>|]', '_', name)
-    name = name.rstrip('. ')
-    name = ''.join(ch for ch in name if ch.isprintable())
+    # Windows で使えない文字を全部 "_" に
+    name = re.sub(r'[\\/*?:"<>|]', "_", name)
+    # 末尾のピリオドと空白を削除
+    name = name.rstrip(". ")
+    # 非表示 / 制御文字を削除
+    name = "".join(ch for ch in name if ch.isprintable())
     return name if name else "game"
 
 
@@ -55,6 +72,7 @@ def get_owned_games(api_key, steam_id):
 
 
 def get_schema_and_achievements(api_key, steam_id, appid):
+    # 実績の取得状況
     stats_url = (
         "https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/"
         f"?key={api_key}&steamid={steam_id}&appid={appid}"
@@ -68,6 +86,7 @@ def get_schema_and_achievements(api_key, steam_id, appid):
         for a in stats_resp["playerstats"]["achievements"]
     }
 
+    # 実績のマスタ（日本語名）
     schema_url = (
         "https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/"
         f"?key={api_key}&appid={appid}&l=japanese"
@@ -100,7 +119,7 @@ class RoundCheck(tk.Frame):
             height=18,
             bg=BG_PANEL,
             highlightthickness=0,
-            borderwidth=0
+            borderwidth=0,
         )
         self.canvas.grid(row=0, column=0, padx=(0, 6))
 
@@ -110,7 +129,7 @@ class RoundCheck(tk.Frame):
             anchor="w",
             bg=BG_PANEL,
             fg=FG_MAIN,
-            font=("NotoSansJP", 10)
+            font=("NotoSansJP", 10),
         )
         self.label_name.grid(row=0, column=1, sticky="we")
 
@@ -120,7 +139,7 @@ class RoundCheck(tk.Frame):
             anchor="e",
             bg=BG_PANEL,
             fg="#9ca3af",
-            font=("NotoSansJP", 9)
+            font=("NotoSansJP", 9),
         )
         self.label_appid.grid(row=0, column=2, padx=(8, 20))
 
@@ -128,9 +147,9 @@ class RoundCheck(tk.Frame):
         self.label_name.bind("<Button-1>", self.toggle)
         self.label_appid.bind("<Button-1>", self.toggle)
 
-        self.draw()
+        self._draw()
 
-    def draw(self):
+    def _draw(self):
         self.canvas.delete("all")
         self.canvas.create_oval(2, 2, 16, 16, outline="#9ca3af", width=2)
         if self.var.get():
@@ -138,7 +157,7 @@ class RoundCheck(tk.Frame):
 
     def toggle(self, _):
         self.var.set(not self.var.get())
-        self.draw()
+        self._draw()
         if self.command:
             self.command()
 
@@ -147,17 +166,25 @@ class RoundCheck(tk.Frame):
 
     def set(self, value: bool):
         self.var.set(value)
-        self.draw()
+        self._draw()
 
 
 # -----------------------------
 # GUI：Pill ボタン
 # -----------------------------
 class PillButton(tk.Canvas):
-    def __init__(self, master, text, command=None,
-                 width=120, height=30,
-                 bg="#3f3e3d", fg="#ffffff",
-                 hover="#4b4a49", active="#2f2e2d"):
+    def __init__(
+        self,
+        master,
+        text,
+        command=None,
+        width=120,
+        height=30,
+        bg="#3f3e3d",
+        fg="#ffffff",
+        hover="#4b4a49",
+        active="#2f2e2d",
+    ):
 
         super().__init__(
             master,
@@ -165,7 +192,7 @@ class PillButton(tk.Canvas):
             height=height,
             bg=BG_PANEL,
             highlightthickness=0,
-            bd=0
+            bd=0,
         )
 
         self.text = text
@@ -176,6 +203,7 @@ class PillButton(tk.Canvas):
         self.active_color = active
         self.current_color = bg
         self.radius = height // 2
+        self.enabled = True
 
         self.bind("<Enter>", self._on_enter)
         self.bind("<Leave>", self._on_leave)
@@ -184,37 +212,65 @@ class PillButton(tk.Canvas):
         self.bind("<Configure>", lambda e: self._draw())
         self._draw()
 
+    def set_enabled(self, enabled: bool):
+        self.enabled = enabled
+        if enabled:
+            self.fg_color = "#ffffff"
+            self.current_color = self.bg_color
+        else:
+            self.fg_color = "#9ca3af"
+            self.current_color = "#2b2a29"
+        self._draw()
+
     def _draw(self):
         self.delete("all")
         w = self.winfo_width()
         h = self.winfo_height()
 
         r = self.radius
+        # 左の丸
         self.create_oval(0, 0, h, h, fill=self.current_color, outline=self.current_color)
+        # 右の丸
         self.create_oval(w - h, 0, w, h, fill=self.current_color, outline=self.current_color)
-        self.create_rectangle(r, 0, w - r, h, fill=self.current_color, outline=self.current_color)
+        # 中央の長方形
+        self.create_rectangle(
+            r,
+            0,
+            w - r,
+            h,
+            fill=self.current_color,
+            outline=self.current_color,
+        )
 
         self.create_text(
             w // 2,
             h // 2,
             text=self.text,
             fill=self.fg_color,
-            font=("NotoSansJP", 11, "bold")
+            font=("NotoSansJP", 11, "bold"),
         )
 
     def _on_enter(self, _):
+        if not self.enabled:
+            return
         self.current_color = self.hover_color
         self._draw()
 
     def _on_leave(self, _):
+        if not self.enabled:
+            return
         self.current_color = self.bg_color
         self._draw()
 
     def _on_press(self, _):
+        if not self.enabled:
+            return
         self.current_color = self.active_color
         self._draw()
 
     def _on_release(self, _):
+        if not self.enabled:
+            return
         self.current_color = self.hover_color
         self._draw()
         if self.command:
@@ -222,20 +278,158 @@ class PillButton(tk.Canvas):
 
 
 # -----------------------------
+# 丸端ゲージ（Canvas ベース）
+# -----------------------------
+class RoundedProgressBar(tk.Canvas):
+    def __init__(
+        self,
+        master,
+        variable: tk.DoubleVar,
+        track_color=GAUGE_TRACK_COLOR,
+        bar_color=GAUGE_BAR_COLOR,
+        height=8,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            master,
+            height=height,
+            bg=BG_PANEL,
+            highlightthickness=0,
+            bd=0,
+            *args,
+            **kwargs,
+        )
+        self.variable = variable
+        self.track_color = track_color
+        self.bar_color = bar_color
+
+        # フェード用 after id
+        self._fade_after = None
+
+        # 値／サイズが変わったら再描画
+        self.variable.trace_add("write", lambda *_: self._draw())
+        self.bind("<Configure>", lambda e: self._draw())
+
+    def _draw(self):
+        self.delete("all")
+        w = self.winfo_width()
+        h = self.winfo_height()
+
+        if w <= 2 or h <= 2:
+            return
+
+        # トラック（背景）
+        self._draw_capsule(0, 0, w, h, self.track_color)
+
+        # 値に応じてバー
+        try:
+            value = float(self.variable.get())
+        except Exception:
+            value = 0.0
+
+        value = max(0.0, min(100.0, value))
+        if value <= 0:
+            return
+
+        fill_len = w * (value / 100.0)
+        if fill_len <= 0:
+            return
+
+        self._draw_capsule(0, 0, fill_len, h, self.bar_color)
+
+    def _draw_capsule(self, x0, y0, x1, y1, color):
+        """左右が丸いカプセル状のバーを描画"""
+        w = x1 - x0
+        h = y1 - y0
+        r = h / 2
+        if w <= 0 or h <= 0:
+            return
+
+        if w <= h:
+            # 幅が高さより小さいときは単純な丸
+            self.create_oval(x0, y0, x0 + w, y0 + h, fill=color, outline=color)
+            return
+
+        # 左丸
+        self.create_oval(
+            x0,
+            y0,
+            x0 + h,
+            y0 + h,
+            fill=color,
+            outline=color,
+        )
+        # 右丸
+        self.create_oval(
+            x1 - h,
+            y0,
+            x1,
+            y0 + h,
+            fill=color,
+            outline=color,
+        )
+        # 中央の四角
+        self.create_rectangle(
+            x0 + r,
+            y0,
+            x1 - r,
+            y0 + h,
+            fill=color,
+            outline=color,
+        )
+
+    def animate_to_zero(self, duration=300):
+        """ゲージをふわっと減衰させながら 0 に戻すアニメーション"""
+        # すでにフェード中なら完全停止
+        if self._fade_after is not None:
+            try:
+                self.after_cancel(self._fade_after)
+            except Exception:
+                pass
+            self._fade_after = None
+
+        start_value = float(self.variable.get())
+        if start_value <= 0:
+            self.variable.set(0.0)
+            self._draw()
+            return
+
+        steps = 20
+        step_time = max(1, duration // steps)
+
+        def step(i):
+            t = i / steps
+            eased = (1 - t) ** 2  # ふわっと落ちるイージング
+            new_value = start_value * eased
+            self.variable.set(new_value)
+            self._draw()
+            if i < steps:
+                self._fade_after = self.after(step_time, lambda: step(i + 1))
+            else:
+                self._fade_after = None
+                self.variable.set(0.0)
+                self._draw()
+
+        step(0)
+
+
+# -----------------------------
 # メイン GUI
 # -----------------------------
 class SteamAchievementsGUI:
-
     def __init__(self, root):
         self.root = root
         root.title(APP_TITLE)
         root.configure(bg=BG_ROOT)
         root.geometry("1100x720")
 
+        # アイコンパス（exe 内にも対応）
+        icon_path = resource_path("steam_achi_multi.ico")
         try:
-            root.iconbitmap("steam_achi.ico")
-        except Exception:
-            pass
+            root.iconbitmap(icon_path)
+        except Exception as e:
+            print("icon load error:", e)
 
         root.option_add("*Font", "NotoSansJP 10")
 
@@ -252,6 +446,15 @@ class SteamAchievementsGUI:
         self._loading_after_id = None
         self._loading = False
         self._loading_anim_step = 0
+
+        # Export 状態
+        self._exporting = False
+        self._cancel_export = False
+
+        # 進捗ゲージ用
+        self.progress_var = tk.DoubleVar(value=0.0)
+        self._progress_anim_after = None
+        self._progress_current = 0.0
 
         self._setup_style()
         self._build_layout()
@@ -272,7 +475,7 @@ class SteamAchievementsGUI:
             borderwidth=0,
             highlightthickness=0,
             padding=0,
-            bordercolor=BG_ROOT
+            bordercolor=BG_ROOT,
         )
         style.configure(
             "Crystal.TNotebook.Tab",
@@ -280,14 +483,15 @@ class SteamAchievementsGUI:
             padding=(18, 8),
             background=BG_PANEL,
             foreground="#e5e7eb",
-            borderwidth=0
+            borderwidth=0,
         )
         style.map(
             "Crystal.TNotebook.Tab",
             background=[("selected", "#3b3a39"), ("active", BG_PANEL)],
-            foreground=[("selected", "#ffffff"), ("active", "#f9fafb")]
+            foreground=[("selected", "#ffffff"), ("active", "#f9fafb")],
         )
 
+        # スクロールバー（太さは OS デフォルトのまま）
         style.configure(
             "Crystal.Vertical.TScrollbar",
             gripcount=0,
@@ -295,11 +499,11 @@ class SteamAchievementsGUI:
             troughcolor=BG_PANEL,
             bordercolor=BG_PANEL,
             arrowcolor=BG_PANEL,
-            relief="flat"
+            relief="flat",
         )
         style.map(
             "Crystal.Vertical.TScrollbar",
-            background=[("!active", "#6b7280"), ("active", "#9ca3af")]
+            background=[("!active", "#6b7280"), ("active", "#9ca3af")],
         )
 
     # -----------------------------
@@ -311,7 +515,7 @@ class SteamAchievementsGUI:
             bg=BG_ROOT,
             highlightthickness=0,
             bd=0,
-            highlightbackground=BG_ROOT
+            highlightbackground=BG_ROOT,
         )
         outer.pack(fill="both", expand=True, padx=12, pady=12)
 
@@ -320,7 +524,7 @@ class SteamAchievementsGUI:
             bg=BG_PANEL,
             highlightthickness=0,
             bd=0,
-            highlightbackground=BG_PANEL
+            highlightbackground=BG_PANEL,
         )
         hud.pack(fill="both", expand=True, padx=4, pady=4)
 
@@ -353,9 +557,16 @@ class SteamAchievementsGUI:
         top = tk.Frame(f, bg=BG_PANEL)
         top.pack(fill="x", padx=16, pady=(16, 8))
 
-        PillButton(top, "Export", self.on_export_achievements).pack(side="left", padx=(0, 10))
-        PillButton(top, "Select All", self.select_all_games).pack(side="left", padx=(0, 10))
-        PillButton(top, "Clear", self.clear_all_games).pack(side="left")
+        # ボタン群
+        self.export_button = PillButton(top, "CSVで出力", self.on_export_achievements)
+        self.export_button.pack(side="left", padx=(0, 10))
+
+        PillButton(top, "すべて選択", self.select_all_games).pack(
+            side="left", padx=(0, 10)
+        )
+        PillButton(top, "選択解除", self.clear_all_games).pack(side="left")
+
+        PillButton(top, "リスト更新", self.on_fetch_games).pack(side="right")
 
         center = tk.Frame(f, bg=BG_PANEL)
         center.pack(fill="both", expand=True, padx=16, pady=(4, 8))
@@ -366,17 +577,15 @@ class SteamAchievementsGUI:
         header = tk.Frame(games_frame, bg=BG_PANEL)
         header.pack(fill="x", pady=(0, 10))
 
-        tk.Label(
-            header, text="ゲーム一覧", bg=BG_PANEL, fg=FG_MAIN,
-            font=("NotoSansJP", 10, "bold")
-        ).pack(side="left")
-
         search_wrap = tk.Frame(header, bg=BG_PANEL)
-        search_wrap.pack(side="right")
+        search_wrap.pack(side="left")
 
         self.search_canvas = tk.Canvas(
-            search_wrap, height=28, bg=BG_PANEL,
-            highlightthickness=0, bd=0
+            search_wrap,
+            height=28,
+            bg=BG_PANEL,
+            highlightthickness=0,
+            bd=0,
         )
         self.search_canvas.pack()
 
@@ -395,7 +604,7 @@ class SteamAchievementsGUI:
             relief="flat",
             bd=0,
             insertbackground="#ffffff",
-            font=("NotoSansJP", 10)
+            font=("NotoSansJP", 10),
         )
 
         def redraw(_=None):
@@ -406,32 +615,47 @@ class SteamAchievementsGUI:
                 return
             r = 14
 
-            self.search_canvas.create_oval(0, 0, h, h, fill=SEARCH_BG, outline=SEARCH_BG)
-            self.search_canvas.create_oval(w - h, 0, w, h, fill=SEARCH_BG, outline=SEARCH_BG)
-            self.search_canvas.create_rectangle(r, 0, w - r, h, fill=SEARCH_BG, outline=SEARCH_BG)
+            self.search_canvas.create_oval(
+                0, 0, h, h, fill=SEARCH_BG, outline=SEARCH_BG
+            )
+            self.search_canvas.create_oval(
+                w - h, 0, w, h, fill=SEARCH_BG, outline=SEARCH_BG
+            )
+            self.search_canvas.create_rectangle(
+                r, 0, w - r, h, fill=SEARCH_BG, outline=SEARCH_BG
+            )
 
             lens_color = "#9ca3af"
-            self.search_canvas.create_oval(6, 6, 18, 18, outline=lens_color, width=2)
-            self.search_canvas.create_line(16, 16, 22, 22, fill=lens_color, width=2)
+            self.search_canvas.create_oval(
+                6, 6, 18, 18, outline=lens_color, width=2
+            )
+            self.search_canvas.create_line(
+                16, 16, 22, 22, fill=lens_color, width=2
+            )
 
             self.search_canvas.create_window(
                 (w // 2) + 10,
                 h // 2,
                 window=self.search_entry,
                 width=w - 40,
-                height=h - 8
+                height=h - 8,
             )
 
         self.search_canvas.bind("<Configure>", redraw)
 
-        canvas = tk.Canvas(games_frame, bg=BG_PANEL, highlightthickness=0, bd=0)
+        canvas = tk.Canvas(
+            games_frame,
+            bg=BG_PANEL,
+            highlightthickness=0,
+            bd=0,
+        )
         canvas.pack(side="left", fill="both", expand=True)
 
         scrollbar = ttk.Scrollbar(
             games_frame,
             orient="vertical",
             style="Crystal.Vertical.TScrollbar",
-            command=canvas.yview
+            command=canvas.yview,
         )
         scrollbar.pack(side="right", fill="y")
 
@@ -447,8 +671,12 @@ class SteamAchievementsGUI:
 
         self.games_inner.bind("<Configure>", _cfg)
         canvas.bind("<Configure>", _cfg)
-        canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(int(-e.delta / 120), "units"))
+        canvas.bind_all(
+            "<MouseWheel>",
+            lambda e: canvas.yview_scroll(int(-e.delta / 120), "units"),
+        )
 
+        # --- 下部：ログ + 進捗 ---
         log_frame = tk.Frame(f, bg=BG_PANEL)
         log_frame.pack(fill="x", padx=16, pady=(0, 12))
 
@@ -464,7 +692,7 @@ class SteamAchievementsGUI:
             fg="#e5e7eb",
             relief="flat",
             wrap="word",
-            font=("NotoSansJP", 10)
+            font=("NotoSansJP", 10),
         )
         self.log_text.pack(side="left", fill="both", expand=True)
 
@@ -472,10 +700,83 @@ class SteamAchievementsGUI:
             log_box,
             orient="vertical",
             style="Crystal.Vertical.TScrollbar",
-            command=self.log_text.yview
+            command=self.log_text.yview,
         )
         log_scroll.pack(side="right", fill="y")
 
+        # 進捗ゲージ + 中止ボタン（右側）
+        progress_box = tk.Frame(log_frame, bg=BG_PANEL)
+        progress_box.pack(fill="x", pady=(8, 0))
+
+        tk.Label(
+            progress_box,
+            text="進捗",
+            bg=BG_PANEL,
+            fg=FG_MAIN,
+            font=("NotoSansJP", 9),
+        ).pack(side="left", padx=(0, 8))
+
+        # ★ 丸端ゲージ（Canvas ベース）
+        self.progress_bar = RoundedProgressBar(
+            progress_box,
+            variable=self.progress_var,
+            track_color=GAUGE_TRACK_COLOR,
+            bar_color=GAUGE_BAR_COLOR,
+            height=8,
+        )
+        self.progress_bar.pack(
+            side="left",
+            padx=(0, 8),
+            fill="none",
+            expand=False,
+        )
+
+        # ゲージの幅を常に 70% に
+        def _resize_progress_bar(_=None):
+            total_w = progress_box.winfo_width()
+            if total_w > 0:
+                self.progress_bar.configure(width=int(total_w * 0.70))
+
+        progress_box.bind("<Configure>", _resize_progress_bar)
+
+        # 中止ボタン（ゲージ右）
+        self.cancel_button = PillButton(
+            progress_box,
+            "中止",
+            self.on_cancel_export,
+            bg="#4b5563",
+            width=80,
+            height=24,
+        )
+        self.cancel_button.pack(side="left", padx=(8, 0))
+        self.cancel_button.set_enabled(False)
+
+        self._init_search_placeholder()
+        self.search_var.trace_add("write", lambda *_: self.filter_games())
+
+    # -----------------------------
+    # 検索プレースホルダー
+    # -----------------------------
+    def _init_search_placeholder(self):
+        """検索バーのプレースホルダー設定（ゲーム検索）"""
+        self._search_placeholder = "ゲーム検索"
+
+        if not self.search_var.get():
+            self.search_var.set(self._search_placeholder)
+            self.search_entry.configure(fg="#9ca3af")
+
+        def focus_in(_):
+            if self.search_var.get() == self._search_placeholder:
+                self.search_var.set("")
+                self.search_entry.configure(fg="#ffffff")
+
+        def focus_out(_):
+            if not self.search_var.get():
+                self.search_var.set(self._search_placeholder)
+                self.search_entry.configure(fg="#9ca3af")
+
+        self.search_entry.bind("<FocusIn>", focus_in)
+        self.search_entry.bind("<FocusOut>", focus_out)
 
     # -----------------------------
     # Log & filter
@@ -483,6 +784,10 @@ class SteamAchievementsGUI:
     def log(self, msg):
         self.log_text.insert("end", msg + "\n")
         self.log_text.see("end")
+
+    def _log_from_thread(self, msg: str):
+        """別スレッドから安全にログを追加"""
+        self.root.after(0, lambda m=msg: self.log(m))
 
     def clear_games_list(self):
         for w in self.games_inner.winfo_children():
@@ -498,19 +803,26 @@ class SteamAchievementsGUI:
             rc.set(False)
 
     def filter_games(self):
-        keyword = self.search_var.get().lower()
-        if keyword == "":
-            pass
+        keyword = self.search_var.get().lower().strip()
+
+        if keyword == "" or keyword == "ゲーム検索":
+            keyword = None
 
         for appid, name, rc in self.round_checks:
+            if keyword is None:
+                if not rc.visible:
+                    rc.pack(anchor="w", fill="x", pady=2)
+                    rc.visible = True
+                continue
+
             match = keyword in name.lower()
+
             if match and not rc.visible:
                 rc.pack(anchor="w", fill="x", pady=2)
                 rc.visible = True
             elif not match and rc.visible:
                 rc.pack_forget()
                 rc.visible = False
-
 
     # -----------------------------
     # Loading
@@ -524,7 +836,7 @@ class SteamAchievementsGUI:
             textvariable=self.loading_text_var,
             bg=BG_PANEL,
             fg="#9ca3af",
-            font=("NotoSansJP", 11, "bold")
+            font=("NotoSansJP", 11, "bold"),
         )
         self.loading_label.pack(expand=True, pady=40)
 
@@ -548,7 +860,6 @@ class SteamAchievementsGUI:
         if self.loading_label is not None:
             self.loading_label.destroy()
             self.loading_label = None
-
 
     # -----------------------------
     # Fetch games
@@ -600,16 +911,87 @@ class SteamAchievementsGUI:
 
         self.filter_games()
 
+    # -----------------------------
+    # 進捗ゲージ制御
+    # -----------------------------
+    def _stop_progress_anim(self):
+        """root.after を使った進捗アニメーションを完全停止"""
+        if self._progress_anim_after is not None:
+            try:
+                self.root.after_cancel(self._progress_anim_after)
+            except Exception:
+                pass
+            self._progress_anim_after = None
+
+    def _reset_progress(self):
+        # 上昇アニメーションを完全停止
+        self._stop_progress_anim()
+
+        self._progress_current = 0.0
+        self.progress_var.set(0.0)
+
+    def _start_progress_anim(self, target: float):
+        # すでにアニメーション中なら完全停止
+        self._stop_progress_anim()
+
+        start = self._progress_current
+        diff = target - start
+
+        # ゆっくり「すーっ」と伸びるアニメーション
+        duration = 900  # ms
+
+        def ease_in_out_cubic(t):
+            if t < 0.5:
+                return 4 * t * t * t
+            else:
+                return 1 - ((-2 * t + 2) ** 3) / 2
+
+        start_time = time.time()
+
+        def step():
+            elapsed = (time.time() - start_time) * 1000.0
+            t = min(elapsed / duration, 1.0)
+            eased = ease_in_out_cubic(t)
+
+            new_val = start + diff * eased
+            self._progress_current = new_val
+            self.progress_var.set(new_val)
+
+            if t >= 1.0:
+                self._progress_anim_after = None
+            else:
+                self._progress_anim_after = self.root.after(16, step)
+
+        step()
+
+    def _set_progress(self, current: int, total: int):
+        if total <= 0:
+            target = 0.0
+        else:
+            target = (current / total) * 100.0
+        self.root.after(0, lambda t=target: self._start_progress_anim(t))
 
     # -----------------------------
-    # Export
+    # Export 関連
     # -----------------------------
+    def on_cancel_export(self):
+        if not self._exporting:
+            return
+        self._cancel_export = True
+        self._log_from_thread("中止要求を受け付けました。しばらくお待ちください。")
+
     def on_export_achievements(self):
+        # 連打防止
+        if self._exporting:
+            return
+
         api_key = self.api_key.get().strip()
         steam_id = self.steam_id.get().strip()
 
         if not api_key or not steam_id:
-            messagebox.showwarning("注意", "API Key と SteamID を設定タブで入力してください。")
+            messagebox.showwarning(
+                "注意", "API Key と SteamID を設定タブで入力してください。"
+            )
             return
 
         selected = [(appid, name) for appid, name, rc in self.round_checks if rc.get()]
@@ -617,9 +999,7 @@ class SteamAchievementsGUI:
             messagebox.showinfo("情報", "書き出すゲームにチェックを入れてください。")
             return
 
-        # =====================================================
-        # ★★ 単品出力 → 完全安全なファイル名を使用（修正点）★★
-        # =====================================================
+        # 単品出力 → 完全安全なファイル名を使用
         if len(selected) == 1:
             raw_name = selected[0][1]
             name = safe_filename(raw_name)
@@ -636,60 +1016,141 @@ class SteamAchievementsGUI:
 
         output_path = os.path.join(base_dir, auto_name)
 
-        rows = []
+        # 状態初期化
         self.log_text.delete("1.0", "end")
         self.log("実績取得を開始...")
+        self._reset_progress()
+        self._cancel_export = False
+        self._exporting = True
+        self.export_button.set_enabled(False)
+        self.cancel_button.set_enabled(True)
 
-        for appid, base_name in selected:
-            self.log(f"{base_name} (AppID: {appid}) 取得中...")
-            try:
-                jp, achievements, status = get_schema_and_achievements(api_key, steam_id, appid)
-                if achievements is None or status is None:
-                    self.log("  ⚠ 情報なし")
-                    continue
+        # 非同期で実績取得＆CSV書き出し（逐次書き込み）
+        thread = threading.Thread(
+            target=self._export_worker,
+            args=(api_key, steam_id, selected, output_path),
+            daemon=True,
+        )
+        thread.start()
 
-                game_name = jp or base_name
+    def _export_worker(self, api_key, steam_id, selected, output_path):
+        total = len(selected)
+        canceled = False
+        had_rows = False
 
-                for a in achievements:
-                    api = a.get("name")
-                    display = a.get("displayName", "")
-                    desc = a.get("description", "")
-                    achieved = "❌"
-                    if status.get(api) == 1:
-                        achieved = "✅"
+        # CSV を開いて、1 行ずつ書き込む
+        try:
+            f = open(output_path, "w", newline="", encoding="utf-8-sig")
+        except Exception as e:
+            self._log_from_thread(f"書き出しエラー: {e}")
+            self.root.after(
+                0,
+                lambda: self._export_done(output_path, e, wrote=False, canceled=False),
+            )
+            return
 
-                    rows.append({
-                        "ゲーム名": game_name,
-                        "実績名": display,
-                        "説明": desc,
-                        "取得状況": achieved
-                    })
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["ゲーム名", "実績名", "説明", "取得状況"],
+        )
+        writer.writeheader()
 
-                time.sleep(0.3)
+        try:
+            for idx, (appid, base_name) in enumerate(selected, start=1):
+                if self._cancel_export:
+                    canceled = True
+                    break
 
-            except Exception as e:
-                self.log(f"  エラー: {e}")
+                self._log_from_thread(f"{base_name} (AppID: {appid}) 取得中...")
+                try:
+                    jp, achievements, status = get_schema_and_achievements(
+                        api_key, steam_id, appid
+                    )
+                    if achievements is None or status is None:
+                        self._log_from_thread("  ⚠ 情報なし")
+                        self._set_progress(idx, total)
+                        continue
 
-        if not rows:
+                    game_name = jp or base_name
+
+                    for a in achievements:
+                        api = a.get("name")
+                        display = a.get("displayName", "")
+                        desc = a.get("description", "")
+                        achieved = "✅" if status.get(api) == 1 else "❌"
+
+                        writer.writerow(
+                            {
+                                "ゲーム名": game_name,
+                                "実績名": display,
+                                "説明": desc,
+                                "取得状況": achieved,
+                            }
+                        )
+                        had_rows = True
+
+                except Exception as e:
+                    self._log_from_thread(f"  エラー: {e}")
+
+                # 進捗更新（すーっとアニメーション）
+                self._set_progress(idx, total)
+
+        finally:
+            f.close()
+
+        # 結果ゼロ
+        if not had_rows:
+            self.root.after(
+                0,
+                lambda: self._export_done(
+                    output_path, None, wrote=False, canceled=canceled
+                ),
+            )
+            return
+
+        # 正常完了 or 中止（部分的に出力）
+        self.root.after(
+            0,
+            lambda: self._export_done(
+                output_path, None, wrote=True, canceled=canceled
+            ),
+        )
+
+    def _export_done(self, output_path, error, wrote: bool, canceled: bool):
+        """Export 完了時（メインスレッド側で実行）"""
+        self._exporting = False
+        self.export_button.set_enabled(True)
+        self.cancel_button.set_enabled(False)
+
+        # ★ 解決ポイント：
+        #  1) 上昇アニメーションを完全停止
+        #  2) その時点の値からゲージをふわっと 0 に戻す
+        self._stop_progress_anim()
+        self._progress_current = float(self.progress_var.get())
+        self.progress_bar.animate_to_zero()
+
+        if error is not None:
+            messagebox.showerror("エラー", f"書き出し失敗:\n{error}")
+            return
+
+        if canceled:
+            if wrote:
+                messagebox.showinfo(
+                    "中止",
+                    f"処理を中止しましたが、一部は書き出されています。\n→ {output_path}",
+                )
+                self.log(f"中止（部分的に出力）→ {output_path}")
+            else:
+                messagebox.showinfo("中止", "処理を中止しました。CSV は出力されていません。")
+                self.log("中止されました。")
+            return
+
+        if not wrote:
             messagebox.showinfo("情報", "実績が取得できませんでした。")
             return
 
-        try:
-            with open(output_path, "w", newline="", encoding="utf-8-sig") as f:
-                writer = csv.DictWriter(
-                    f,
-                    fieldnames=["ゲーム名", "実績名", "説明", "取得状況"]
-                )
-                writer.writeheader()
-                writer.writerows(rows)
-
-            self.log(f"完了 → {output_path}")
-            messagebox.showinfo("完了", "CSV 書き出しが完了しました。")
-
-        except Exception as e:
-            messagebox.showerror("エラー", f"書き出し失敗:\n{e}")
-            self.log(f"書き出しエラー: {e}")
-
+        self.log(f"完了 → {output_path}")
+        messagebox.showinfo("完了", "CSV 書き出しが完了しました。")
 
     # -----------------------------
     # Config Save / Load
@@ -697,11 +1158,16 @@ class SteamAchievementsGUI:
     def save_config(self):
         try:
             with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-                json.dump({
-                    "api_key": self.api_key.get(),
-                    "steam_id": self.steam_id.get(),
-                    "output_path": self.output_path.get(),
-                }, f, indent=2, ensure_ascii=False)
+                json.dump(
+                    {
+                        "api_key": self.api_key.get(),
+                        "steam_id": self.steam_id.get(),
+                        "output_path": self.output_path.get(),
+                    },
+                    f,
+                    indent=2,
+                    ensure_ascii=False,
+                )
         except Exception:
             pass
 
