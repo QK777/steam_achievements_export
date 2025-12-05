@@ -1,11 +1,15 @@
+# Steam Achievements Export  
 
 ## 🌍 Languages / 言語
-[🇺🇸 English](#english-version) | [🇯🇵 日本語](#日本語版)
+[🇺🇸 English](#english-version) | [🇯🇵 日本語](#japanese-version)
 
 ---
-# Steam Achievements Export  
+
+# <a id="japanese-version"></a>🇯🇵 日本語版  
+
+## Steam Achievements Export とは？  
 Steam Achievements Export は、Steam アカウントが所有しているゲームの実績情報を  
-**日本語でわかりやすく CSV に一括出力できる Windows アプリ**です。
+**わかりやすく CSV に一括出力できる Windows アプリ**です。
 
 Steam API を利用して  
 - ゲームタイトル  
@@ -13,65 +17,63 @@ Steam API を利用して
 - 実績説明  
 - 取得状況（✓ / ✗）  
 
-を取得し、Excel や Google スプレッドシートで分析しやすい形式で書き出せます。
-実績をスプレッドシートで管理したい方に向けたアプリです。
+を取得し、Excel や Google スプレッドシートで分析しやすい形式で書き出せます。  
+**実績をスプレッドシートで管理したい方に向けたアプリです。**
 
-<br><br>
+<br>
 
 ## 🔹 日本語タイトル・日本語実績に対応  
 対応しているゲームは、ゲーム名も実績名も日本語で取得できます。  
-<br>
 
 ## 🔹 所有ゲームを自動取得  
 API Key と SteamID64 を入力するだけで、  
 Steam アカウントが所有するすべてのゲームを一覧化します。  
-<br>
 
 ## 🔹 ゲーム検索・フィルタリング  
-上部の検索バーから  
-ゲーム一覧をリアルタイムに検索できます。  
-<br>
+検索バーからリアルタイムにゲーム一覧を絞り込みできます。  
 
 ## 🔹 チェックしたゲームだけ書き出し  
-「Select All」「Clear」に加えて、  
-必要なゲームのみ CSV に出力できます。  
-<br><br>
+「Select All」「Clear」機能を搭載し、  
+必要なゲームだけを CSV に出力できます。  
 
+<br>
 
-# **使用方法**  
-⓵ exe を起動し、設定ページを開きます。  
+# 📘 使用方法  
 
-⓶ Steam Web API Key を取得  
-1. https://steamcommunity.com/dev/apikey  
+### ① exe を起動し、設定ページを開く  
+
+### ② Steam Web API Key を取得する  
+1. https://steamcommunity.com/dev/apikey にアクセス  
 2. Steam アカウントでログイン  
 3. Domain に `localhost` と入力  
-4. 「Register」で API Key が発行されます  
+4. 「Register」→ API Key が発行される  
 
-⓷ SteamID64 を確認  
+### ③ SteamID64 を確認する  
 1. 自分の Steam プロフィールを開く  
 2. https://steamid.io/ にプロフィール URL を貼る  
-3. 表示される **SteamID64（17桁）** を使用  
+3. 表示された **SteamID64（17桁）** を使用  
 
-⓸ 出力先 CSV に保存したいフォルダを指定  
+### ④ 出力先 CSV を保存するフォルダを指定  
 
-⓹ 実績タブで所持ゲーム一覧が表示されます  
+### ⑤ 「実績」タブで所持ゲーム一覧を確認  
 
-⓺ チェックしたゲームを選び、**Export** を押すと CSV が生成されます  
+### ⑥ チェックを入れたゲームだけを **Export** ボタンで CSV に書き出し  
+
 <br>
 
 ## 📝 注意事項  
-- 実績データは Steam API / ゲーム側が公開している範囲で取得されます  
-- 一部ゲームは実績情報が非公開  
-- 所持ゲームのみ取得可能（ファミリーシェアリングは不可）  
+- 実績データは Steam API / ゲーム側が公開している内容に依存します  
+- 一部ゲームは実績詳細を非公開にしています  
+- 所持ゲームのみ取得可能（ファミリーシェアリングは非対応）  
 - Steam API Key は無料で取得できます  
 
 ---
 
-# 🇺🇸 English Version
-## **What is Steam Achievements Export?**  
+# <a id="english-version"></a>🇺🇸 English Version  
+
+## What is Steam Achievements Export?  
 Steam Achievements Export is a Windows application that allows you to  
-**retrieve all achievement data for your owned Steam games and export them to a CSV file**,  
-with full support for Japanese translation where available.
+**retrieve achievement data for all games you own on Steam and export it into a clean CSV file.**
 
 Using the Steam Web API, the app collects:
 - Game title  
@@ -79,53 +81,54 @@ Using the Steam Web API, the app collects:
 - Achievement description  
 - Unlock status (✓ / ✗)  
 
-You can then open the CSV in Excel or Google Sheets for organization and analysis.  
-Steam Achievements Export is designed for users who want to organize and manage their Steam achievements in spreadsheets.
-<br><br>
+The generated CSV can be used in Excel, Google Sheets, or any spreadsheet software for organization and analysis.  
+**This application is designed for users who want to manage their Steam achievements using spreadsheets.**
 
-## 🔹 Supports Japanese Game Titles & Achievements  
-For supported games, both the game name and achievement names/descriptions are retrieved in Japanese.  
 <br>
+
+## 🔹 Supports Japanese Game Titles & Achievement Data  
+For supported games, both game names and achievement descriptions can be retrieved in Japanese.  
 
 ## 🔹 Automatically Retrieves Owned Games  
 Simply enter your API Key and SteamID64—  
 the app will list all games owned by your Steam account.  
-<br>
 
 ## 🔹 Search & Filter Games  
-Use the search bar to filter your game list in real time.  
-<br>
+Use the search bar to filter your game list in real-time.  
 
 ## 🔹 Export Only the Selected Games  
-You can export achievements for only the games you selected,  
-using features like **Select All** and **Clear**.  
-<br><br>
+You can export achievements for selected games only,  
+with features like **Select All** and **Clear** for convenience.  
 
-# **How to Use**
-1. Launch the executable and open the **Settings** page.  
-
-2. Get your Steam Web API Key  
-   1. Visit https://steamcommunity.com/dev/apikey  
-   2. Log in with your Steam account  
-   3. Enter `localhost` as the Domain  
-   4. Click **Register** to obtain your API Key  
-
-3. Find your SteamID64  
-   1. Open your Steam profile page  
-   2. Go to https://steamid.io/ and paste your profile URL  
-   3. Use the displayed **SteamID64 (17 digits)**  
-
-4. Choose the output folder for the CSV file  
-
-5. Open the **Achievements** tab to view your owned games  
-
-6. Select the games you want to export and click **Export**  
 <br>
 
-## 📝 Notes
-- Achievement data availability depends on Steam API and each game  
-- Some games do not expose achievement details  
+# 📘 How to Use  
+
+### ① Launch the executable and open the **Settings** page  
+
+### ② Obtain your Steam Web API Key  
+1. Visit https://steamcommunity.com/dev/apikey  
+2. Log in with your Steam account  
+3. Enter `localhost` in the Domain field  
+4. Click **Register** to receive your API Key  
+
+### ③ Find your SteamID64  
+1. Open your Steam profile  
+2. Go to https://steamid.io/ and paste your profile URL  
+3. Use the displayed **SteamID64 (17 digits)**  
+
+### ④ Choose the output folder for CSV files  
+
+### ⑤ View your owned games in the **Achievements** tab  
+
+### ⑥ Select the games and click **Export** to generate a CSV file  
+
+<br>
+
+## 📝 Notes  
+- Achievement data availability depends on what each game exposes through the Steam API  
+- Some games do not provide detailed achievement information  
 - Only achievements for games you personally own can be retrieved  
-- Steam API Key is free to obtain  
+- The Steam API Key is free to obtain  
 
 ---
