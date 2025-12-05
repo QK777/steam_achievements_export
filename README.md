@@ -1,3 +1,8 @@
+
+## 🌍 Languages / 言語
+[🇺🇸 English](#english-version) | [🇯🇵 日本語](#日本語版)
+
+---
 # Steam Achievements Export  
 Steam Achievements Export は、Steam アカウントが所有しているゲームの実績情報を  
 **日本語でわかりやすく CSV に一括出力できる Windows アプリ**です。
@@ -8,24 +13,9 @@ Steam API を利用して
 - 実績説明  
 - 取得状況（✓ / ✗）  
 
-などを取得し、Excel や Google スプレッドシートで分析しやすい形式で書き出せます。
+を取得し、Excel や Google スプレッドシートで分析しやすい形式で書き出せます。
+実績をスプレッドシートで管理したい方に向けたアプリです。
 
----
-
-## 🌍 Languages / 言語
-[🇺🇸 English](#english-version) | [🇯🇵 日本語](#日本語版)
-
----
-
-# 🇯🇵 日本語版
-## **Steam Achievements Export とは？**  
-Steam で所有しているゲームの実績情報を一括取得し、  
-日本語でわかりやすく CSV に書き出せる Windows 専用アプリです。  
-
-Steam API を利用して、  
-ゲームタイトル / 実績名 / 実績説明 / 取得状況（✓ / ✗）  
-をまとめて取得し、  
-Excel や Google スプレッドシートで分析・整理できる形式で出力します。  
 <br><br>
 
 ## 🔹 日本語タイトル・日本語実績に対応  
@@ -90,6 +80,7 @@ Using the Steam Web API, the app collects:
 - Unlock status (✓ / ✗)  
 
 You can then open the CSV in Excel or Google Sheets for organization and analysis.  
+Steam Achievements Export is designed for users who want to organize and manage their Steam achievements in spreadsheets.
 <br><br>
 
 ## 🔹 Supports Japanese Game Titles & Achievements  
